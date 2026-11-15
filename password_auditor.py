@@ -1,9 +1,41 @@
+import secrets
+import string
+
+
+MIN_PASSWORD_LENGTH = 12
+GENERATED_PASSWORD_LENGTH = 16
+
+
+def generate_password():
+    """Generate a password that satisfies the current policy."""
+    characters = [
+        secrets.choice(string.ascii_uppercase),
+        secrets.choice(string.ascii_lowercase),
+        secrets.choice(string.digits),
+    ]
+    alphabet = string.ascii_letters + string.digits
+    characters.extend(
+        secrets.choice(alphabet)
+        for _ in range(GENERATED_PASSWORD_LENGTH - len(characters))
+    )
+    secrets.SystemRandom().shuffle(characters)
+    return "".join(characters)
+
+
 print("Password Strength and Policy Auditor")
 
-password = input("Enter a password: ")
+choice = input("Choose an option: [1] Check a password [2] Generate a password: ")
+if choice == "1":
+    password = input("Enter a password: ")
+elif choice == "2":
+    password = generate_password()
+    print(f"Generated password: {password}")
+else:
+    print("Invalid option. Choose 1 or 2.")
+    raise SystemExit(1)
 
 # Length Check
-if len(password) >= 12:
+if len(password) >= MIN_PASSWORD_LENGTH:
     print("✅ Length requirement met")
 else:
     print("❌ Password must be at least 12 characters")
