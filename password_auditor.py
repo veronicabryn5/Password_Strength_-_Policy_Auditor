@@ -2,7 +2,7 @@ import math
 import secrets
 import string
 
-
+ENHANCEMENT_FACTOR = 1.3
 MIN_PASSWORD_LENGTH = 12
 TARGET_ENTROPY_BITS = 80
 MAX_GENERATED_PASSWORD_LENGTH = 28
@@ -143,6 +143,62 @@ def report_entropy(entropy_bits, estimate_type):
             "or breached passwords."
         )
 
+#Password enhancer
+def enhance_password(password):
+    randomizer = secrets.SystemRandom()
+    target_bits = estimate_password_entropy(password) * ENHANCEMENT_FACTOR
+    enhanced = list(password)
+
+    def insert_random(character):
+        enhanced.insert(randomizer.randint(0, len(enhanced)), character)
+
+    missing_classes = [
+        character_class
+        for character_class, present in (
+            (string.ascii_lowercase, any(c.islower() for c in enhanced)),
+            (string.ascii_uppercase, any(c.isupper() for c in enhanced)),
+            (string.digits, any(c.isdigit() for c in enhanced)),
+            (string.punctuation, any(c in string.punctuation for c in enhanced)),
+        )
+        if not present
+    ]
+    for character_class in missing_classes:
+        insert_random(randomizer.choice(character_class))
+
+    while estimate_password_entropy("".join(enhanced)) < target_bits:
+        insert_random(randomizer.choice(GENERATED_CHARACTERS))
+
+    return "".join(enhanced)
+
+
+def run_policy_checks(password):
+        # Length Check
+    if len(password) >= MIN_PASSWORD_LENGTH:
+        print("✅ Length requirement met")
+    else:
+        print("❌ Password must be at least 12 characters")
+
+    # Uppercase Check
+    if any(char.isupper() for char in password):
+        print("✅ Contains uppercase letter")
+    else:
+        print("❌ Missing uppercase letter")
+
+    # Lowercase Check
+    if any(char.islower() for char in password):
+        print("✅ Contains lowercase letter")
+    else:
+        print("❌ Missing lowercase letter")
+
+    # Number Check
+    if any(char.isdigit() for char in password):
+        print("✅ Contains number")
+    else:
+        print("❌ Missing number")
+
+
+
+
 
 print("Password Strength and Policy Auditor")
 
@@ -162,26 +218,26 @@ else:
 
 report_entropy(entropy_bits, estimate_type)
 
-# Length Check
-if len(password) >= MIN_PASSWORD_LENGTH:
-    print("✅ Length requirement met")
-else:
-    print("❌ Password must be at least 12 characters")
 
-# Uppercase Check
-if any(char.isupper() for char in password):
-    print("✅ Contains uppercase letter")
-else:
-    print("❌ Missing uppercase letter")
 
-# Lowercase Check
-if any(char.islower() for char in password):
-    print("✅ Contains lowercase letter")
-else:
-    print("❌ Missing lowercase letter")
 
-# Number Check
-if any(char.isdigit() for char in password):
-    print("✅ Contains number")
-else:
-    print("❌ Missing number")
+
+#Enhancing a user-typed password to reach higher entropy estimate
+report_entropy(entropy_bits, estimate_type)
+run_policy_checks(password)
+
+# Enhancement option (only for passwords the user entered)
+if choice == "1" and password:
+    enhance = input(
+        "\nWould you like to enhance this password to make it 30% stronger? [Y/N]: "
+    )
+    if enhance.strip().lower() in ("y", "yes"):
+        enhanced_password = enhance_password(password)
+        enhanced_bits = estimate_password_entropy(enhanced_password)
+        improvement = (enhanced_bits / entropy_bits - 1) * 100
+        print(f"\nEnhanced password: {enhanced_password}")
+        print(f"Improvement: {entropy_bits:.1f} -> {enhanced_bits:.1f} bits (+{improvement:.0f}%)")
+        report_entropy(enhanced_bits, "character-set estimate (length × log₂(pool size))")
+        run_policy_checks(enhanced_password)
+elif choice == "1":
+    print("Nothing to enhance: the password is empty.")
